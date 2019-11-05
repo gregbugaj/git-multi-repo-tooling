@@ -1,0 +1,31 @@
+{
+  "name": "git-mrepo",
+  "version": "1.0.0",
+  "description": "GIT Multi Repository Tooling",
+  "main": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregbugaj/git-multi-repo-tooling.git"
+  },
+ 
+  "bin": {
+    "git-mrepo": "./git-mrepo"
+  },
+
+  "keywords": [
+    "git",
+    "multi-repo",
+    "multiple-repositories",
+    "repositories",
+    "git tooling"
+  ],
+  "author": "Greg Bugaj",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gregbugaj/git-multi-repo-tooling/issues"
+  },
+  "homepage": "https://github.com/gregbugaj/git-multi-repo-tooling#readme"
+}

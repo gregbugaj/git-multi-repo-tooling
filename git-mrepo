@@ -1,0 +1,255 @@
+#!/bin/bash
+
+cmd=
+cmd_branch_extended=0
+
+# max lenght of the repository name, anything past that will be trimmed
+MAX_REPO_DIR_LENGTH=24
+
+# Default number of how many commits do we want to display per repository
+# This can be adjusted for required commands
+NUMBER_OF_COMMITS=5
+ 
+# Associative arrays containing info for projects and colors
+declare -A projects
+declare -A pcolors
+
+usage() {
+
+cat <<EOS
+    GIT Multi Repository Tooling
+
+    usage: repo [[status] | [pull] | [branch [0 1 2]] | [commits] | [dirty] | [help] | [repos]]
+
+
+    -r,    repos            List discovered repos
+    -s,    status           Show status
+    -p,    pull             Pull latest changes(Pull and merge with current working copy) 
+                            git fetch followed by git merge
+    -f,    fetch            Fetch from a remote repository (does not affect working copy)
+                            Not you can run 'mrepo diff' to check difference between working copy and fetched copy
+
+    -df,   diff             Diff (git diff origin/master)
+    -b,    branch           Display branch information 
+       0                    Display local branch information
+       1                    Display remote branch and tags info
+       2                    Display detailed branch information
+    -c,    commits          Display commit information
+    -d,    dirty            Display modified/dirty files
+    -p,    standup          Display commits made since last standup
+
+    Examples :
+    git mrepo repos         Show listing of repositories 
+EOS
+}
+
+repo_pull() {
+    local gitdata=$(git pull)
+    _r_decorate "$gitdata"   
+}
+
+repo_fetch() {
+    local gitdata=$(git fetch)
+    _r_decorate "$gitdata"   
+}
+
+repo_diff() {
+    local gitdata=$(git diff origin/master --color=always)
+    _r_decorate "$gitdata"   
+}
+
+# Get current repository directory name and trim it to 
+_r_dir() {    
+    printf "%s" "${PWD##*/}" | cut -c1-$MAX_REPO_DIR_LENGTH
+}
+
+## Decorate passed in lines with the current repo directory
+_r_decorate() {   
+   local blue=$(tput setaf 4)
+   local green=$(tput setaf 2)
+   local normal=$(tput sgr0)   
+
+   local dir="$(_r_dir)"
+   
+   if [ -z "${1}" ]; then
+     return
+   fi
+
+   IFS='\n'
+   while read -r line
+   do      
+      local current=$(echo -e "${PWD}")      
+      local randomcolor=$(tput setaf ${pcolors[$current]})
+      # Remove leading whitespace from, git is reporting ' M ' with leading space white 'A' or '??' does not
+      local clean="$(echo -e "$line" | sed -e 's/^[[:space:]]*//')"      
+      printf "${randomcolor}%-24s| ${normal}%s\n" "$dir" "$clean"
+   done <<< ${1}
+}
+
+repo_status() {
+    # default to show status in short version
+    local gitstat=$(git -c color.status=always status -s)
+    _r_decorate "$gitstat"
+}
+
+repo_commits() {    
+    #git log --all --pretty=format:"- %s [%h] (%ae; %ar)"
+    # Add  -p to display line by line changes
+    # Add --since='9am yesterday'
+    # Add --author=$USER
+    #local gitlog=$(git log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit)
+    local gitlog=$(git log -n $NUMBER_OF_COMMITS --pretty=format:'%Cred%h%Creset - %s %Cgreen(%cr) %C(bold blue)<%an>%Creset %C(yellow)%d%Creset' --abbrev-commit)
+    _r_decorate "$gitlog"
+}
+
+repo_stanup() {    
+    # Add  -p to display line by line changes
+    # Add --since='9am yesterday'
+    # Add --author=$USER    
+    local payload=$(git log --pretty=format:'%Cred%h%Creset - %s %Cgreen(%cr) %C(bold blue)<%an>%Creset %C(yellow)%d%Creset' --abbrev-commit --since='9am yesterday' -p) 
+    _r_decorate "$payload"
+}
+
+repo_branch() {
+    local gcmd="";
+    if [ "$cmd_branch_extended" = "1" ]; then
+	  gcmd=$(git ls-remote  origin)  # This will display both tags and  branches, for branches only use :  git ls-remote --heads origin
+    elif [ "$cmd_branch_extended" = "2" ]; then
+      gcmd=$(git remote show origin)
+    else
+        # gcmd=$(git branch -r --color=always)
+        gcmd=$(git branch -r | cut -d' ' -f3 | xargs git show --pretty='%Cgreen%ai %Creset%h  %an %d' -s | sed '/^$/d' | sort | uniq)        
+    fi
+
+    _r_decorate "$gcmd"
+}
+
+repo_dirty() {
+    # list all the files in the repo, including staged one but not yet commited
+    local info=$(git ls-files -m) # Modified
+   # git diff-index --cached HEAD # Uncommitted
+}
+
+dir_resolve() {
+  cd "$1" 2>/dev/null || return $?  # cd to desired directory; if fail, quell any error messages but return exit status
+  echo "`pwd -P`" # output full, link-resolved path
+}
+
+# Display one line repo information
+repo_repos() {
+     # local info=$(git show --summary --oneline --color=always)    
+    local branch="$(git symbolic-ref --short HEAD)"
+    local property="branch.${branch}.description"
+    local info=$(git config --get "$property")
+
+    if [ "$branch" != "master" ]; then
+        branch="\e[91m$branch";
+    fi
+
+    _r_decorate "$branch $info"
+}
+
+
+if [ $# -eq 0 ]; then
+   usage
+   exit
+fi
+
+# Collect parameters
+while [ "$1" != "" ]; do
+    case $1 in
+        -r | repos )            cmd='repos'
+                                ;;
+        -p | pull )             cmd='pull'
+                                ;;
+        -up | standup)          cmd='standup'
+                                # consume arguments
+                                while [ "$1" != "" ]; do
+                                     echo "param : $1"
+                                    #case $1 in
+                                    #esac
+                                shift   
+                                done
+                                ;;
+        -s | status )           cmd='status'
+                                ;;
+        -f | fetch )            cmd='fetch'
+                                ;;                                
+        -df | diff )            cmd='diff'
+                                ;;                       
+        -b | branch )           
+                                cmd='branch'
+                                shift
+                                cmd_branch_extended=$1
+                                ;;
+        -c | commits )          cmd='commits'
+                                ;;
+        -d | dirty )            cmd='dirty'
+                                ;;
+        -h | help )             usage
+                                exit
+                                ;;
+        * )                     usage
+                                exit 1
+    esac
+    shift
+done
+
+# process repositories starting from the current directory as an anchor
+# Find toplevel git directories starting from current directory and going up N leveles
+
+start=$(pwd)
+while IFS= read -r -d $'\n' line; do 
+    cd "$line"
+    toplevel=$(git rev-parse --show-toplevel 2>/dev/null)        
+    if [ -n "$toplevel" ]; then
+        projects[$toplevel]=$toplevel
+        # Create random color associated with this project
+        pcolors[$toplevel]=$(($RANDOM * 256 / 32767 + 1))
+
+        # create color based on check sum (using something less than 256 so we don't get too bright of the colors)
+        sum=$(cksum <<< $toplevel | cut -f 1 -d ' ')
+        pcolors[$toplevel]=$(($sum % 225))
+    fi
+done <<< $(find `pwd` -maxdepth 3 -type d)
+cd $start
+
+echo "Discovered :: ${#projects[@]}"
+
+for file in "${projects[@]}"; do     
+     # resolve symlinks
+     if [[ -d "$file" && ! -L "$file" ]]; then  
+        cd "$file"
+
+        case ${cmd} in
+            ("repos")
+                        repo_repos
+                        ;;
+            ("pull")
+                        repo_pull
+                        ;;
+            ("status")
+                        repo_status
+                        ;;
+
+            ("standup")
+                        repo_stanup
+                        ;;
+            ("branch")
+                        repo_branch
+                        ;;
+            ("commits")
+                        repo_commits
+                        ;;
+            ("dirty")
+                        repo_dirty
+                        ;;                 
+           ("fetch")
+                        repo_fetch
+                        ;;                                
+           ("diff")
+                        repo_diff
+                        ;;                         
+        esac           
+    fi; 
+done   
