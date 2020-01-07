@@ -19,7 +19,7 @@ usage() {
 cat <<EOS
     GIT Multi Repository Tooling
 
-    usage: repo [[status] | [pull] | [branch [0 1 2]] | [commits] | [dirty] | [help] | [repos]]
+    usage: repo [[status] | [pull] | [branch [0 1 2]] | [log] | [dirty] | [help] | [repos]]
 
 
     -r,    repos            List discovered repos
@@ -34,7 +34,7 @@ cat <<EOS
        0                    Display local branch information
        1                    Display remote branch and tags info
        2                    Display detailed branch information
-    -c,    commits          Display commit information
+    -l,    log              Display commit information
     -d,    dirty            Display modified/dirty files
     -p,    standup          Display commits made since last standup
 
@@ -92,7 +92,7 @@ repo_status() {
     _r_decorate "$gitstat"
 }
 
-repo_commits() {    
+repo_log() {    
     #git log --all --pretty=format:"- %s [%h] (%ae; %ar)"
     # Add  -p to display line by line changes
     # Add --since='9am yesterday'
@@ -182,7 +182,7 @@ while [ "$1" != "" ]; do
                                 shift
                                 cmd_branch_extended=$1
                                 ;;
-        -c | commits )          cmd='commits'
+        -l | log )              cmd='log'
                                 ;;
         -d | dirty )            cmd='dirty'
                                 ;;
@@ -238,8 +238,8 @@ for file in "${projects[@]}"; do
             ("branch")
                         repo_branch
                         ;;
-            ("commits")
-                        repo_commits
+            ("log")
+                        repo_log
                         ;;
             ("dirty")
                         repo_dirty
