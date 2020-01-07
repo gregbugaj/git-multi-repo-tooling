@@ -7,6 +7,13 @@ if ! [ -x "$(command -v make)" ]; then
     exit 1
 fi
 
+if ! [ -x "$(command -v git)" ]; then
+    echo 'Error : git is not installed failed with $?. Run : apt-get install git ' >&2
+    exit 1
+fi
+
+
+
 echo 'Cloning project into :: git-mrepo'
 git clone https://github.com/gregbugaj/git-multi-repo-tooling.git git-mrepo || { echo >&2 "Clone failed with $?"; exit 1; } 
 cd git-mrepo

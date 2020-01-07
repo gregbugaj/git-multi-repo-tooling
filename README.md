@@ -23,13 +23,13 @@ At this time the script does not support nested repos.
 Innstallation script takes advantage of `git` alliasing to setup up our script and create seamles integration with `git`.
 By default we will create  `git mrepo` alias pointint to our `/usr/local/git-mrepo` script.
 
-``` bash
+``` sh
 curl -L  https://github.com/gregbugaj/git-multi-repo-tooling/raw/master/installer.sh | sudo bash -s — -v 12
 ```
 
 After installation you should see message simillar to this
 
-```
+```sh
 curl -L  https://github.com/gregbugaj/git-multi-repo-tooling/raw/master/installer.sh | sudo bash -s — -v 12
 % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
