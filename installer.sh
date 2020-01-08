@@ -21,6 +21,6 @@ echo 'Running :  make install'
 make install || { echo >&2 "Installation failed with $?"; exit 1; }
 cd ..
 echo 'cleaning up'
-rm -rf git-mrepo
+rm -rf git-mrepo.sh
 
 echo 'you should be able to manually run git-mrepo'

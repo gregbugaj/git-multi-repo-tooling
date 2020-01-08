@@ -61,7 +61,6 @@ sudo make install
 ```
 
 
-
 ## Usage
 
 ``` bash
@@ -79,13 +78,28 @@ Project repo names will be trimmed or padded  to a default length of `24` charac
 
 This setting ecan be adjusted by editing the script.
 
-### Colors
+### Colors 
 
 Git command coloring
 
 ``` bash
 git -c color.status=always status
 git -c color.ui=always diff
+```
+
+### Examples
+
+Checking out multiple repos
+```sh 
+git mrepo checkout <branch>
+```
+
+```text
+[OK   ] app-1 (## feature/xyz)
+[OK   ] app-3 (## master)
+[ERROR] app-2
+[ --- ] ## No commits yet on master
+[ --- ] ?? readme.md
 ```
 
 ## References
