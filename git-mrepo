@@ -19,8 +19,7 @@ usage() {
 cat <<EOS
     GIT Multi Repository Tooling
 
-    usage: repo [[status] | [pull] | [branch [0 1 2]] | [log] | [dirty] | [help] | [repos]]
-
+    usage: repo [[status] | [pull] | [branch [0 1 2]] | [log] | [dirty] | [help] | [repos] | checkout [<branch>]]
 
     -r,    repos            List discovered repos
     -s,    status           Show status
@@ -36,10 +35,18 @@ cat <<EOS
        2                    Display detailed branch information
     -l,    log              Display commit information
     -d,    dirty            Display modified/dirty files
-    -p,    standup          Display commits made since last standup
+    -up,   standup          Display commits made since last standup
+    -c,    checkout         Switch branches or restore working tree files 
+       <branch>
+       -b <branch>          Switch branches or restore working tree files or create new one if it does not exists
 
     Examples :
-    git mrepo repos         Show listing of repositories 
+
+    git mrepo repos                  Show listing of repositories 
+    
+    git mrepo checkout  <branch>     Switch branches 
+    git mrepo checkout -b <branch>   Switch branches
+
 EOS
 }
 
@@ -130,6 +137,20 @@ repo_dirty() {
    # git diff-index --cached HEAD # Uncommitted
 }
 
+repo_checkout() {
+  local p1=$2
+   echo "checkout(): total args passed to me $#"
+   echo "checkout(): all args (\$@) passed to me -\"$@\""
+
+   echo $2
+   if [ "$p1" = "-b" ]; then
+       echo 'Create branch'
+   else
+       echo 'Use branch'
+   fi
+}
+
+
 dir_resolve() {
   cd "$1" 2>/dev/null || return $?  # cd to desired directory; if fail, quell any error messages but return exit status
   echo "`pwd -P`" # output full, link-resolved path
@@ -155,6 +176,7 @@ if [ $# -eq 0 ]; then
    exit
 fi
 
+args=$@
 # Collect parameters
 while [ "$1" != "" ]; do
     case $1 in
@@ -186,6 +208,9 @@ while [ "$1" != "" ]; do
                                 ;;
         -d | dirty )            cmd='dirty'
                                 ;;
+        -c | checkout )         cmd='checkout'
+                                break
+                                ;;                                
         -h | help )             usage
                                 exit
                                 ;;
@@ -215,7 +240,9 @@ done <<< $(find `pwd` -maxdepth 3 -type d)
 cd $start
 
 echo "Discovered :: ${#projects[@]}"
+echo "cmd :: ${cmd}"
 
+# Commands that can be handled at directory level
 for file in "${projects[@]}"; do     
      # resolve symlinks
      if [[ -d "$file" && ! -L "$file" ]]; then  
@@ -248,8 +275,14 @@ for file in "${projects[@]}"; do
                         repo_fetch
                         ;;                                
            ("diff")
-                        repo_diff
-                        ;;                         
+                        repo_diff                         
         esac           
     fi; 
 done   
+
+# echo 'Aggregated commands'
+case ${cmd} in
+    ("checkout")
+                repo_checkout $@
+                ;;                         
+esac   
