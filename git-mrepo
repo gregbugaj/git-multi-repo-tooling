@@ -197,6 +197,7 @@ repo_checkout() {
       echo -e "[\e[1;91m ERROR \e[0m] Preflight failed, issues found : $issues"    
       exit
     fi
+    
     echo -e "[\e[1;93m INFO  \e[0m] Preflight complete"    
 
     for projectdir in "${projects[@]}"; do     
@@ -209,7 +210,6 @@ repo_checkout() {
         fi; 
     done  
 }
-
 
 dir_resolve() {
   cd "$1" 2>/dev/null || return $?  # cd to desired directory; if fail, quell any error messages but return exit status
