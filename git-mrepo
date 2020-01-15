@@ -50,6 +50,12 @@ cat <<EOS
 EOS
 }
 
+# Error handling funcion
+failAndExit() {
+    echo "Error occured >> $1"
+    exit
+}
+
 repo_pull() {
     local gitdata=$(git pull)
     _r_decorate "$gitdata"   
@@ -82,7 +88,7 @@ _r_decorate() {
      return
    fi
 
-   IFS='\n'
+   IFS=$'\n'
    while read -r line
    do      
       local current=$(echo -e "${PWD}")      
@@ -90,7 +96,7 @@ _r_decorate() {
       # Remove leading whitespace from, git is reporting ' M ' with leading space white 'A' or '??' does not
       local clean="$(echo -e "$line" | sed -e 's/^[[:space:]]*//')"      
       printf "${randomcolor}%-24s| ${normal}%s\n" "$dir" "$clean"
-   done <<< ${1}
+   done <<< "${1}"
 }
 
 repo_status() {
@@ -137,24 +143,28 @@ repo_dirty() {
    # git diff-index --cached HEAD # Uncommitted
 }
 
+quiet_git() {
+    stdout=$(tempfile)
+    stderr=$(tempfile)
+
+    if ! git "$@" </dev/null >$stdout 2>$stderr; then
+        cat $stderr >&2
+        rm -f $stdout $stderr
+        exit 1
+    fi
+    rm -f $stdout $stderr
+}
+
 repo_checkout() {
   local p1=$2
-   echo $2
-
-   if [ "$p1" = "-b" ]; then
-       echo 'Create branch'
-   else
-       echo 'Use branch'
-   fi
-   
-   echo -e "[\e[1;93m INFO  \e[0m] Preflight check"           
+   echo -e "[\e[1;93m INFO  \e[0m] Preflight check, checkout (\e[1;92m$p1\e[0m)"           
    issues=0
    hasErrors=0
    firstBranch=""
    for projectdir in "${projects[@]}"; do     
        # resolve symlinks
        if [[ -d "$projectdir" && ! -L "$projectdir" ]]; then  
-           cd "$projectdir"
+           cd "$projectdir" || failAndExit "change directory : $projectdir"
            project=${PWD##*/}
            # read and parse, there will alwyas be a branch at index 0                    
            msg=$(git status --branch --porcelain)
@@ -188,25 +198,38 @@ repo_checkout() {
            else
              echo -e "[\e[1;92m OK    \e[0m] $project (\e[1;92m$branch\e[0m)"    
            fi
-
            unset array
         fi; 
     done  
 
     if [ $hasErrors == 1 ]; then
-      echo -e "[\e[1;91m ERROR \e[0m] Preflight failed, issues found : $issues"    
+      echo -e "[\e[1;91m ERROR \e[0m] Preflight failed, Please Fix All Issues Before Continuing : $issues"    
       exit
     fi
     
-    echo -e "[\e[1;93m INFO  \e[0m] Preflight complete"    
+    echo -e "[\e[1;93m INFO  \e[0m] Preflight complete" 
+    echo -e "[\e[1;93m INFO  \e[0m] Checking out projects"
 
     for projectdir in "${projects[@]}"; do     
        # resolve symlinks
        if [[ -d "$projectdir" && ! -L "$projectdir" ]]; then  
-           cd "$projectdir"
-           project=${PWD##*/}           
-           msg=$(git checkout master)
-           echo -e "[\e[1;93m INFO \e[0m] $project\e[0m >>> $msg"               
+           cd "$projectdir" || failAndExit "change directory : $projectdir"
+           project=${PWD##*/}    
+           echo -e "[\e[1;93m INFO \e[0m] (\e[1;92m$project\e[0m)"               
+       
+           if [ "$p1" = "-b" ]; then
+               echo 'Create branch' 
+               git checkout -b "$p1" #--quiet &> /dev/null
+           else
+               echo 'Use branch' # --track
+               git checkout "$p1" #--quiet &> /dev/null
+           fi
+
+           if [ $? = 0 ]; then
+            echo -e "[\e[1;92m OK    \e[0m] Checkout complete" 
+           else
+            echo -e "[\e[1;91m ERROR \e[0m] Checkout failed"
+           fi
         fi; 
     done  
 }
@@ -236,7 +259,6 @@ if [ $# -eq 0 ]; then
    exit
 fi
 
-args=$@
 # Collect parameters
 while [ "$1" != "" ]; do
     case $1 in
