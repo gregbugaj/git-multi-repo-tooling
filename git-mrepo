@@ -156,8 +156,17 @@ quiet_git() {
 }
 
 repo_checkout() {
-  local p1=$2
-   echo -e "[\e[1;93m INFO  \e[0m] Preflight check, checkout (\e[1;92m$p1\e[0m)"           
+    local p1=$2
+    local b2c=""
+
+    if [ "$p1" = "-b" ]; then
+        b2c=$3
+    else
+        b2c=$2
+    fi
+
+   echo -e "[\e[1;93m INFO  \e[0m] Preflight check, checkout (\e[1;92m$b2c\e[0m)"    
+
    issues=0
    hasErrors=0
    firstBranch=""
@@ -204,7 +213,7 @@ repo_checkout() {
 
     if [ $hasErrors == 1 ]; then
       echo -e "[\e[1;91m ERROR \e[0m] Preflight failed, Please Fix All Issues Before Continuing : $issues"    
-      exit
+      exit 1
     fi
     
     echo -e "[\e[1;93m INFO  \e[0m] Preflight complete" 
@@ -216,13 +225,11 @@ repo_checkout() {
            cd "$projectdir" || failAndExit "change directory : $projectdir"
            project=${PWD##*/}    
            echo -e "[\e[1;93m INFO \e[0m] (\e[1;92m$project\e[0m)"               
-       
            if [ "$p1" = "-b" ]; then
-               echo 'Create branch' 
-               git checkout -b "$p1" #--quiet &> /dev/null
+               git checkout -b "$b2c"
+                #--quiet &> /dev/null
            else
-               echo 'Use branch' # --track
-               git checkout "$p1" #--quiet &> /dev/null
+               git checkout "$b2c" #--quiet &> /dev/null
            fi
 
            if [ $? = 0 ]; then
@@ -253,10 +260,9 @@ repo_repos() {
     _r_decorate "$branch $info"
 }
 
-
 if [ $# -eq 0 ]; then
    usage
-   exit
+   exit 1
 fi
 
 # Collect parameters
