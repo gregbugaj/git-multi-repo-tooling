@@ -1,24 +1,28 @@
- #!/bin/bash  
+#!/bin/bash
 
 echo 'Checking dependencies'
 
 if ! [ -x "$(command -v make)" ]; then
-    echo 'Error : make is not installed failed with $?. Run : apt-get install make ' >&2
-    exit 1
+	echo 'Error : make is not installed failed with $?. Run : apt-get install make ' >&2
+	exit 1
 fi
 
 if ! [ -x "$(command -v git)" ]; then
-    echo 'Error : git is not installed failed with $?. Run : apt-get install git ' >&2
-    exit 1
+	echo 'Error : git is not installed failed with $?. Run : apt-get install git ' >&2
+	exit 1
 fi
 
-
-
 echo 'Cloning project into :: git-mrepo'
-git clone https://github.com/gregbugaj/git-multi-repo-tooling.git git-mrepo || { echo >&2 "Clone failed with $?"; exit 1; } 
+git clone https://github.com/gregbugaj/git-multi-repo-tooling.git git-mrepo || {
+	echo >&2 "Clone failed with $?"
+	exit 1
+}
 cd git-mrepo
 echo 'Running :  make install'
-make install || { echo >&2 "Installation failed with $?"; exit 1; }
+make install || {
+	echo >&2 "Installation failed with $?"
+	exit 1
+}
 cd ..
 echo 'cleaning up'
 rm -rf git-mrepo.sh

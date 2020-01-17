@@ -112,3 +112,11 @@ A lot of ideas and snippets at this locations
 * https://www.atlassian.com/company/events/summit-europe/watch-sessions/2017/featured/git-aliases-of-the-gods
 * https://coderwall.com/p/euwpig/a-better-git-log
 * http://codegists.com/code/git-show-summary/
+
+## Code formatting
+
+Code is formatted using with [https://github.com/mvdan/sh] shfmt
+
+```sh
+shfmt -l -w git-mrepo
+```
